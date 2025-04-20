@@ -17,9 +17,17 @@ class NeuralNetwork():
             node._input_size = last_input_size
             last_input_size = node._neuron_count
 
-            node._weights = np.zeros((node._neuron_count, node._input_size))
-            node._biases = np.zeros((node._neuron_count))
+            node._weights = np.random.uniform(-1, 1, (node._neuron_count, node._input_size)) if random_weights else np.zeros((node._neuron_count, node._input_size))
+            node._biases = np.random.uniform(-1, 1, (node._neuron_count,)) if random_biases else np.zeros((node._neuron_count))
         return self
+
+    def forward(self, input_data: np.ndarray):
+        output_data = input_data
+        for node in self._network_nodes:
+            node._input = output_data
+            node.evaluate()
+            output_data = node._output
+        return output_data
 
     @private
     def network_nodes(self):
