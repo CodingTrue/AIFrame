@@ -1,6 +1,8 @@
 from aiframe.PropertyUtils import private
 from aiframe.node.NodeLoader import *
 
+import numpy as np
+
 class NeuralNetwork():
     def __init__(self, network_nodes: list = [], input_size: int = -1, nodeloader: NodeLoader = BASIC_NODE_LOADER):
         self._network_nodes = network_nodes
@@ -14,6 +16,9 @@ class NeuralNetwork():
 
             node._input_size = last_input_size
             last_input_size = node._neuron_count
+
+            node._weights = np.zeros((node._neuron_count, node._input_size))
+            node._biases = np.zeros((node._neuron_count))
         return self
 
     @private

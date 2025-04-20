@@ -7,6 +7,9 @@ class NodeLoader():
 
     def register_default_classes(self):
         self.register_class(target=HiddenLayerNode, is_layer=True, path="", author="aiframe")
+        self.register_class(target=ReLUNode, is_layer=False, path="", author="aiframe")
+        self.register_class(target=TanHNode, is_layer=False, path="", author="aiframe")
+        self.register_class(target=SigmoidNode, is_layer=False, path="", author="aiframe")
 
         return self
 
