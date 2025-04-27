@@ -12,7 +12,7 @@ class NeuralNetwork():
     def init(self, random_weights: bool = False, random_biases: bool = False):
         last_input_size = self._input_size
         for node in self._network_nodes:
-            if not self._nodeloader.is_layer(node.__class__): continue
+            if not self._nodeloader.is_node_layer(node): continue
 
             node._input_size = last_input_size
             last_input_size = node._neuron_count

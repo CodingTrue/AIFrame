@@ -20,6 +20,10 @@ class TrainProgram():
     def add_program_element(self, element: str):
         self._program_elements.append(element)
 
+    def add_program_elements(self, elements: list):
+        for element in elements:
+            self.add_program_element(element=element)
+
     @private
     def program_elements(self):
         return self._program_elements
