@@ -1,4 +1,4 @@
-from aiframe import private, mass_replace, mass_replace_all, mass_strip, calculate_layer_backward_values, squared_loss, update_gradient
+from aiframe import private, mass_replace, mass_replace_all, mass_strip, calculate_layer_backward_values, squared_loss, update_gradient, BaseCriterion
 from aiframe.training import TrainProgram
 from aiframe.node import BaseNode, NodeLoader, BASIC_NODE_LOADER
 
@@ -7,11 +7,12 @@ import numpy as np
 import inspect
 
 class TrainProgramBuilder():
-    def __init__(self, nodeloader: NodeLoader = BASIC_NODE_LOADER):
+    def __init__(self, criterion: BaseCriterion = None, nodeloader: NodeLoader = BASIC_NODE_LOADER):
         self._nodeloader = nodeloader
         self._code_definitions = {}
         self._function_definitions = {}
         self._import_definitions = []
+        self._criterion = criterion
 
         strip_info = [
             "self.",
@@ -64,8 +65,8 @@ class TrainProgramBuilder():
         )
         self.add_program_import(module_name="numpy", import_as="np")
         self.add_program_function_definition(function=calculate_layer_backward_values, function_name="calculate_layer_backward_values", strip_info=[], replace_info={"numpy": "np"})
-        self.add_program_function_definition(function=squared_loss, function_name="squared_loss", strip_info=[], replace_info={"numpy": "np"})
         self.add_program_function_definition(function=update_gradient, function_name="update_gradient", strip_info=[], replace_info={"numpy": "np"})
+        if self._criterion: self.add_program_function_definition(function=self._criterion.backward_loss, function_name="backward_loss", strip_info=["self, "], replace_info={"numpy": "np"})
 
     def add_program_import(self, module_name: str, import_as: str = ""):
         self._import_definitions.append([f"import {module_name}{f' as {import_as}' if import_as else ''}"])
@@ -76,9 +77,10 @@ class TrainProgramBuilder():
         sourcecode = mass_replace(sourcecode, replace_info)
 
         sourcecode_definitions = []
-        for line in sourcecode.split('\n'):
+        for i, line in enumerate(sourcecode.split('\n')):
             if not line: continue
-            sourcecode_definitions.append(line)
+            sourcecode_definitions.append(("\t" if i > 0 else "") + line.strip())
+
         self._function_definitions[function_name] = sourcecode_definitions
 
     def add_node_code_definitions(self, function, pass_name: str = "", strip_info: list = [], replace_info: dict = {}, override_definitions: dict = {}, add_definitions: dict = {}):
@@ -131,7 +133,7 @@ class TrainProgramBuilder():
             train_program.add_program_elements(elements=code_definition)
             if self._nodeloader.is_node_layer(target=node): layer_position += 1
 
-        train_program.add_program_element(element="pass_values = squared_loss(pass_values, expected)")
+        train_program.add_program_element(element="pass_values = backward_loss(pass_values, expected)")
 
         layer_position = 0
         node_position = 0
@@ -172,3 +174,7 @@ class TrainProgramBuilder():
     @private
     def import_definitions(self):
         return self._import_definitions
+
+    @private
+    def criterion(self):
+        return self._criterion
