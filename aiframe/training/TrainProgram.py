@@ -1,5 +1,4 @@
-from aiframe import private
-
+from aiframe.PropertyUtils import private
 
 class TrainProgram():
     def __init__(self):

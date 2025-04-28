@@ -1,4 +1,8 @@
-from aiframe import private, mass_replace, mass_replace_all, mass_strip, calculate_layer_backward_values, squared_loss, update_gradient, BaseCriterion
+from aiframe.Utils import mass_replace, mass_replace_all, mass_strip
+from aiframe.training.TrainingFunctions import calculate_layer_backward_values, update_gradient
+from aiframe.Criterion import BaseCriterion
+from aiframe.PropertyUtils import private
+
 from aiframe.training import TrainProgram
 from aiframe.node import BaseNode, NodeLoader, BASIC_NODE_LOADER
 
