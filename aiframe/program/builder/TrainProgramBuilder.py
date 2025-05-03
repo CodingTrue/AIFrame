@@ -1,5 +1,6 @@
-from aiframe.program import Program, TrainProgram
+from aiframe.program import Program
 from aiframe.program.builder import ProgramBuilder
+from aiframe.program.dispatch import DisptachInfo, DeviceType
 
 from aiframe.node.NodeLoader import NodeLoader, BASIC_NODE_LOADER
 from aiframe.node.Nodes import BaseNode
@@ -70,7 +71,7 @@ class TrainProgramBuilder(ProgramBuilder):
         if self._criterion: self.add_program_function_definition(function=self._criterion.backward_loss, function_name="backward_loss", strip_info=["self, "], replace_info={"numpy": "np"})
 
     def build_program_from_nodes(self, nodes: list[BaseNode]) -> Program:
-        train_program = TrainProgram()
+        train_program = Program(dispatch_info=DisptachInfo(run_device=DeviceType.CPU, can_be_parallelized=False))
 
         for import_definition in self._import_definitions:
             train_program.add_program_elements(elements=import_definition)

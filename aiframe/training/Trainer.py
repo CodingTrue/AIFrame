@@ -1,10 +1,10 @@
 from aiframe import NeuralNetwork
-from aiframe.program import TrainProgram
+from aiframe.program import Program
 
 import numpy as np
 
 class Trainer():
-    def train(self, nn: NeuralNetwork, train_program: TrainProgram):
+    def train(self, nn: NeuralNetwork, train_program: Program):
         #print("\n".join(train_program.program_elements))
 
         train_program.assamble()
