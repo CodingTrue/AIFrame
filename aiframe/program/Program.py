@@ -1,6 +1,6 @@
 from aiframe.PropertyUtils import private
 
-class TrainProgram():
+class Program():
     def __init__(self):
         self._program_elements = []
         self._program = None

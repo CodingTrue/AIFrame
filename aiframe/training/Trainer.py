@@ -1,5 +1,5 @@
 from aiframe import NeuralNetwork
-from aiframe.training import TrainProgram
+from aiframe.program import TrainProgram
 
 import numpy as np
 
