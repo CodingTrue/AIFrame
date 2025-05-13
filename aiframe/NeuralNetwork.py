@@ -18,6 +18,6 @@ class NeuralNetwork():
             node._input_size = input_size
             input_size = node._neuron_count
 
-            node._weights = np.random.uniform(-1, 1, (node._neuron_count, node._input_size)) if random else np.zeros((node._neuron_count, node._input_size))
+            node._weights = np.random.uniform(-1, 1, (node._input_size, node._neuron_count)) if random else np.zeros((node._input_size, node._neuron_count))
             node._biases = np.random.uniform(-1, 1, (node._neuron_count,)) if random else np.zeros((node._neuron_count,))
         return self
