@@ -28,7 +28,7 @@ class HiddenLayerNode(BaseNode):
 
 class ReluActivationNode(BaseActivationNode):
     def evaluate(self):
-        self._output = np.max(self._input)
+        self._output = np.maximum(self._input, 0)
 
     def backward(self):
         return self._output > 0
