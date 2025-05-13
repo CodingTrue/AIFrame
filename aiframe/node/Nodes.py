@@ -26,7 +26,7 @@ class HiddenLayerNode(BaseNode):
     def evaluate(self):
         self._output = np.dot(self._input, self._weights.T) + self._biases
 
-class ReluActivation(BaseActivationNode):
+class ReluActivationNode(BaseActivationNode):
     def evaluate(self):
         self._output = np.max(self._input)
 
