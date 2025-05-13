@@ -1,7 +1,5 @@
 from aiframe.node.Nodes import BaseNode, HiddenLayerNode
-
-def get_class(target: BaseNode | type) -> type:
-    return target if isinstance(target, type) else target.__class__
+from aiframe.Utils import get_class
 
 class NodeLoader():
     def __init__(self):
