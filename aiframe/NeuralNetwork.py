@@ -21,3 +21,6 @@ class NeuralNetwork():
             node._weights = np.random.uniform(-1, 1, (node._input_size, node._neuron_count)) if random else np.zeros((node._input_size, node._neuron_count))
             node._biases = np.random.uniform(-1, 1, (node._neuron_count,)) if random else np.zeros((node._neuron_count,))
         return self
+
+    def get_layer_count(self) -> int:
+        return len([node for node in self._network_nodes if self._nodeloader.is_layer(target=node)])
