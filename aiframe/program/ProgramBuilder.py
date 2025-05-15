@@ -35,6 +35,7 @@ class ProgramBuilder():
 
             train_program.add_lines(lines=source)
 
+        layer_position -= 1
         train_program.add_line(line=f"cost_values = (x_{layer_position} - expected)**2")
 
         for i, node in enumerate(nn._network_nodes[::-1]):
@@ -43,7 +44,7 @@ class ProgramBuilder():
 
             source = []
             if is_node_layer:
-                if layer_position + 1 == layer_count: continue
+                if layer_position + 2 == layer_count: continue
 
                 source = mass_replace_list(targets=[
                     f"backward_values = np.sum((w_{layer_position + 1} * z_{layer_position + 1}) * backward_values[:, None], axis=1)"
