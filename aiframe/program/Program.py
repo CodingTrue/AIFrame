@@ -18,9 +18,11 @@ class Program():
         self._program = compile('\n'.join(self._program_lines), "<string>", "exec")
         return self
 
-    def get_function(self, function_name: str):
+    def get_function(self, function_name: str, globals: dict = {}):
+        globals.update(self._program_parameters)
+
         locals = {}
-        exec(self._program, {}, locals)
+        exec(self._program, globals, locals)
         return locals.get(function_name)
 
     def add_pass(self):

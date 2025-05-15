@@ -1,13 +1,14 @@
 from aiframe import NeuralNetwork
 from aiframe.Utils import mass_strip_list, mass_remove_list, mass_replace_list
-from aiframe.program import Program
+from aiframe.program import TrainProgram
 
 import inspect
 
+
 class ProgramBuilder():
     @staticmethod
-    def create_train_program(nn: NeuralNetwork):
-        train_program = Program()
+    def create_train_program(nn: NeuralNetwork) -> TrainProgram:
+        train_program = TrainProgram()
 
         layer_count = nn.get_layer_count()
 
