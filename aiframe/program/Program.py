@@ -15,7 +15,13 @@ class Program():
         self._program_parameters = parameters
 
     def assamble(self):
-        return
+        self._program = compile('\n'.join(self._program_lines), "<string>", "exec")
+        return self
+
+    def get_function(self, function_name: str):
+        locals = {}
+        exec(self._program, {}, locals)
+        return locals.get(function_name)
 
     def add_pass(self):
         return

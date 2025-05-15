@@ -68,4 +68,7 @@ class ProgramBuilder():
             }.items()
         }
         train_program.set_parameters(parameters=parameters)
+
+        train_program._program_lines = [f"\t{line}" for line in train_program._program_lines]
+        train_program._program_lines.insert(0, "def train_function(inputs, expected):")
         return train_program
