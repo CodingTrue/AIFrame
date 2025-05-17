@@ -30,7 +30,9 @@ class ProgramBuilder():
                 "_input": "inputs" if i == 0 else f"x_{offset - is_node_layer}"
             })
 
-            if is_node_layer: layer_position += 1
+            if is_node_layer:
+                source.append(f"layer_cache_{layer_position} = x_{offset}")
+                layer_position += 1
             was_last_layer = is_node_layer
 
             train_program.add_lines(lines=source)
@@ -47,7 +49,8 @@ class ProgramBuilder():
                 if layer_position + 2 == layer_count: continue
 
                 source = mass_replace_list(targets=[
-                    f"backward_values = np.sum((w_{layer_position + 1} * z_{layer_position + 1}) * backward_values[:, None], axis=1)"
+                    f"backward_values = np.sum((w_{layer_position + 1} * z_{layer_position + 1}) * backward_values[:, None], axis=1)",
+                    f"gradientW[{layer_position+1}] = {f'layer_cache_{layer_position+1}' if layer_position+1 > 0 else 'inputs'} * backward_values[:, None]"
                 ], replace_info={})
             else:
                 source = inspect.getsource(node.backward).split(":")[1:]
@@ -60,6 +63,7 @@ class ProgramBuilder():
                 })
             if i == 0:
                 source.append(f"backward_values = cost_values * z_{layer_position}")
+                source.append(f"gradientW[{layer_position}] += {f'layer_cache_{layer_position - 1}' if layer_position > 0 else 'inputs'} * backward_values[:, None]")
             train_program.add_lines(lines=source)
 
         layer_map = [node for node in nn._network_nodes if nn._nodeloader.is_layer(target=node)]
@@ -72,5 +76,5 @@ class ProgramBuilder():
         train_program.set_parameters(parameters=parameters)
 
         train_program._program_lines = [f"\t{line}" for line in train_program._program_lines]
-        train_program._program_lines.insert(0, "def train_function(inputs, expected):")
+        train_program._program_lines.insert(0, "def train_function(inputs, expected, gradientW, gradientB):")
         return train_program
