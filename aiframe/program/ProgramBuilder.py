@@ -50,7 +50,8 @@ class ProgramBuilder():
 
                 source = mass_replace_list(targets=[
                     f"backward_values = np.sum((w_{layer_position + 1} * z_{layer_position + 1}) * backward_values[:, None], axis=1)",
-                    f"gradientW[{layer_position+1}] = {f'layer_cache_{layer_position+1}' if layer_position+1 > 0 else 'inputs'} * backward_values[:, None]"
+                    f"gradientW[{layer_position+1}] = {f'layer_cache_{layer_position+1}' if layer_position+1 > 0 else 'inputs'} * backward_values[:, None]",
+                    f"gradientB[{layer_position+1}] += backward_values"
                 ], replace_info={})
             else:
                 source = inspect.getsource(node.backward).split(":")[1:]
@@ -64,6 +65,7 @@ class ProgramBuilder():
             if i == 0:
                 source.append(f"backward_values = cost_values * z_{layer_position}")
                 source.append(f"gradientW[{layer_position}] += {f'layer_cache_{layer_position - 1}' if layer_position > 0 else 'inputs'} * backward_values[:, None]")
+                source.append(f"gradientB[{layer_position}] += backward_values")
             train_program.add_lines(lines=source)
 
         layer_map = [node for node in nn._network_nodes if nn._nodeloader.is_layer(target=node)]
