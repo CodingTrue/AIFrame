@@ -50,7 +50,7 @@ class ProgramBuilder():
 
                 source = mass_replace_list(targets=[
                     f"backward_values = np.sum((w_{layer_position + 1} * z_{layer_position + 1}) * backward_values[:, None], axis=0)",
-                    f"gradientW[{layer_position+1}] = {f'layer_cache_{layer_position+1}' if layer_position+1 > 0 else 'inputs'} * backward_values[:, None]",
+                    f"gradientW[{layer_position+1}] += {f'layer_cache_{layer_position+1}' if layer_position+1 > 0 else 'inputs'} * backward_values[:, None]",
                     f"gradientB[{layer_position+1}] += backward_values"
                 ], replace_info={})
             else:
