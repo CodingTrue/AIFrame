@@ -9,8 +9,9 @@ class ProgramBuilder():
     @staticmethod
     def create_train_program(nn: NeuralNetwork) -> TrainProgram:
         train_program = TrainProgram()
-
         layer_count = nn.get_layer_count()
+
+        train_program.add_line(line="def train_function(inputs, expected, gradientW, gradientB):")
 
         layer_position = 0
         offset = 0
@@ -20,7 +21,7 @@ class ProgramBuilder():
 
             if (not was_last_layer and is_node_layer) and i > 0: offset += 1
 
-            source = inspect.getsource(node.evaluate).split(":")[1:]
+            source = inspect.getsource(node.evaluate).split(":", 1)[1:]
             source = mass_strip_list(targets=source)
             source = mass_remove_list(targets=source, remove_info=["self."])
             source = mass_replace_list(targets=source, replace_info={
@@ -35,38 +36,32 @@ class ProgramBuilder():
                 layer_position += 1
             was_last_layer = is_node_layer
 
-            train_program.add_lines(lines=source)
+            train_program.add_lines(lines=source, prefix="\t")
 
-        layer_position -= 1
-        train_program.add_line(line=f"cost_values = (x_{layer_position} - expected)**2")
+        layer_position = layer_count - 1
+        train_program.add_line(line=f"cost_values = 2 * (x_{layer_position} - expected)", prefix="\t")
 
         for i, node in enumerate(nn._network_nodes[::-1]):
             is_node_layer = nn._nodeloader.is_layer(target=node)
-            if is_node_layer: layer_position -= 1
 
-            source = []
+            source = inspect.getsource(node.backward).split(":", 1)[1:]
+            source = mass_strip_list(targets=source)
+            source = mass_remove_list(targets=source, remove_info=["self."])
+            source = mass_replace_list(targets=source, replace_info={
+                "_weights": f"w_{layer_position + 1}",
+                "activation": f"z_{layer_position}",
+                "return": f"{'backward_values' if is_node_layer else f'z_{layer_position}'} =",
+                "_output": f"x_{layer_position}"
+            })
+
             if is_node_layer:
-                if layer_position + 2 == layer_count: continue
+                if layer_position == layer_count - 1:
+                    source = [f"backward_values = z_{layer_position} * cost_values"]
+                source.append(f"gradientW[{layer_position}] += np.dot({f'x_{layer_position - 1}' if layer_position > 0 else 'inputs'}.T, backward_values)")
+                source.append(f"gradientB[{layer_position}] += np.sum(backward_values, axis=0)")
+                layer_position -= 1
 
-                source = mass_replace_list(targets=[
-                    f"backward_values = np.sum((w_{layer_position + 1} * z_{layer_position + 1}) * backward_values[:, None], axis=0)",
-                    f"gradientW[{layer_position+1}] += {f'layer_cache_{layer_position+1}' if layer_position+1 > 0 else 'inputs'} * backward_values[:, None]",
-                    f"gradientB[{layer_position+1}] += backward_values"
-                ], replace_info={})
-            else:
-                source = inspect.getsource(node.backward).split(":")[1:]
-                source = mass_strip_list(targets=source)
-                source = mass_remove_list(targets=source, remove_info=["self."])
-                source = mass_replace_list(targets=source, replace_info={
-                    "return": f"z_{layer_position} =",
-                    "_output": f"x_{layer_position}",
-                    "_input": "INPUTS" if layer_position == 0 and is_node_layer else f"x_{layer_position}"
-                })
-            if i == 0:
-                source.append(f"backward_values = cost_values * z_{layer_position}")
-                source.append(f"gradientW[{layer_position}] += {f'layer_cache_{layer_position - 1}' if layer_position > 0 else 'inputs'} * backward_values[:, None]")
-                source.append(f"gradientB[{layer_position}] += backward_values")
-            train_program.add_lines(lines=source)
+            train_program.add_lines(lines=source, prefix="\t")
 
         layer_map = [node for node in nn._network_nodes if nn._nodeloader.is_layer(target=node)]
         parameters = {
@@ -75,8 +70,6 @@ class ProgramBuilder():
                 f"b_{i}": layer_map[i]._biases,
             }.items()
         }
-        train_program.set_parameters(parameters=parameters)
 
-        train_program._program_lines = [f"\t{line}" for line in train_program._program_lines]
-        train_program._program_lines.insert(0, "def train_function(inputs, expected, gradientW, gradientB):")
+        train_program.set_parameters(parameters=parameters)
         return train_program

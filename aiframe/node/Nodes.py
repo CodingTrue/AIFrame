@@ -10,9 +10,8 @@ class BaseNode(ABC):
     def evaluate(self):
         return
 
-class BaseActivationNode(BaseNode):
     @abstractmethod
-    def backward(self):
+    def backward():
         return
 
 class HiddenLayerNode(BaseNode):
@@ -26,9 +25,12 @@ class HiddenLayerNode(BaseNode):
     def evaluate(self):
         self._output = np.dot(self._input, self._weights) + self._biases
 
-class ReluActivationNode(BaseActivationNode):
+    def backward(self, activation, backward_values):
+        return np.dot(backward_values, self._weights.T) * activation
+
+class ReluActivationNode(BaseNode):
     def evaluate(self):
         self._output = np.maximum(self._input, 0)
 
     def backward(self):
-        return self._output > 0
+        return (self._output > 0).astype(float)

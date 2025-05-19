@@ -4,12 +4,12 @@ class Program():
         self._program_parameters = {}
         self._program = None
 
-    def add_line(self, line: str = ""):
-        self._program_lines.append(line)
+    def add_line(self, line: str = "", prefix: str = ""):
+        self._program_lines.append(prefix + line)
 
-    def add_lines(self, lines: list[str] = []):
+    def add_lines(self, lines: list[str] = [], prefix: str = ""):
         for line in lines:
-            self._program_lines.append(line)
+            self._program_lines.append(prefix + line)
 
     def set_parameters(self, parameters: dict):
         self._program_parameters = parameters
