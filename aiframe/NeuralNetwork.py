@@ -20,6 +20,14 @@ class NeuralNetwork():
             node._biases = np.random.uniform(-1, 1, (node._neuron_count,)) if random else np.zeros((node._neuron_count,))
         return self
 
+    def forward(self, input_data: np.ndarray) -> np.ndarray:
+        out = input_data
+        for node in self._network_nodes:
+            node._input = out
+            node.evaluate()
+            out = node._output
+        return out
+
     def get_layer_at_index(self, index: int) -> BaseNode:
         return self.get_layers()[index]
 
