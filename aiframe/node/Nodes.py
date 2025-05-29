@@ -34,3 +34,13 @@ class ReluActivationNode(BaseNode):
 
     def backward(self):
         return (self._output > 0).astype(float)
+
+class SoftmaxActivationNode(BaseNode):
+    def evaluate(self):
+        expos = np.exp(self._input - np.max(self._input, axis=-1, keepdims=True))
+        self._output = expos / np.sum(expos, axis=-1, keepdims=True)
+
+    def backward(self):
+        expos = np.exp(self._input - np.max(self._input))
+        s = expos / np.sum(expos, axis=-1, keepdims=True)
+        return np.diag(s) - np.outer(s, s)
