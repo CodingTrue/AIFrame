@@ -67,7 +67,8 @@ class ProgramBuilder():
                 "_weights": f"w_{layer_position + 1}",
                 "activation": f"z_{layer_position}",
                 "return": f"{'backward_values' if is_node_layer else f'z_{layer_position}'} =",
-                "_output": f"x_{layer_position}"
+                "_output": f"x_{layer_position}",
+                "_input": f"layer_cache_{layer_position}"
             })
 
             if len(source[-1]) <= len(f"z_{layer_position}") + 2: continue # skip empty lines
@@ -75,8 +76,8 @@ class ProgramBuilder():
             if is_node_layer:
                 if layer_position == layer_count - 1:
                     source = ["backward_values = cost_values"] if skipped_last else [f"backward_values = z_{layer_position} * cost_values"]
-                source.append(f"gradientW[{layer_position}] += np.dot({f'x_{layer_position - 1}' if layer_position > 0 else 'inputs'}.T, backward_values)")
-                source.append(f"gradientB[{layer_position}] += np.sum(backward_values, axis=0)")
+                source.append(f"gradientW[{layer_position}] = np.dot({f'x_{layer_position - 1}' if layer_position > 0 else 'inputs'}.T, backward_values)")
+                source.append(f"gradientB[{layer_position}] = np.sum(backward_values, axis=0)")
                 layer_position -= 1
 
             train_program.add_lines(lines=source, prefix="\t")

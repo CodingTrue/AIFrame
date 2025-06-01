@@ -4,7 +4,7 @@ from aiframe import NeuralNetwork
 from aiframe.program import Program
 
 class TrainProgram(Program):
-    def train(self, nn: NeuralNetwork, training_data: list, learn_rate: float = 0.05, iterations: int = 1):
+    def train(self, nn: NeuralNetwork, training_data: list, learn_rate: float = 0.05, iterations: int = 1, learn_rate_decay: float = 1):
         train_function = self.get_function(function_name="train_function", globals={"np": np})
 
         weights = nn.get_weights()
@@ -14,12 +14,24 @@ class TrainProgram(Program):
         gradientW = [np.zeros(layer) for layer in nn.get_network_structure()]
         gradientB = [np.zeros(neuron_count) for _, neuron_count in nn.get_network_structure()]
 
-        for i in range(iterations):
-            train_function(inputs=training_data[0], expected=training_data[1], gradientW=gradientW, gradientB=gradientB)
+        batch_count = training_data[0].shape[0]
+        batch_size = training_data[0].shape[1]
 
-            for i in range(layer_count):
-                weights[i] -= gradientW[i] * learn_rate
-                biases[i] -= biases[i] * learn_rate
+        inputs = training_data[0]
+        expected = training_data[1]
+
+        lr = learn_rate
+        for e in range(iterations):
+            losses.append(-np.log(nn.forward(input_data=inputs[0])[np.arange(batch_size), expected[0].argmax(axis=1)]).mean())
+
+
+            for idx in np.random.permutation(batch_count):
+                train_function(inputs=inputs[idx], expected=expected[idx], gradientW=gradientW, gradientB=gradientB)
+
+                for i in range(layer_count):
+                    weights[i] -= gradientW[i] / batch_size * lr
+                    biases[i] -= gradientB[i] / batch_size * lr
+            lr = learn_rate * (learn_rate_decay**e)
 
         for i in range(layer_count):
             layer = nn.get_layer_at_index(index=i)
