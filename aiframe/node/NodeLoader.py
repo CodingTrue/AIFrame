@@ -1,4 +1,5 @@
-from aiframe.node.Nodes import BaseNode, HiddenLayerNode, ReluActivationNode, SoftmaxActivationNode
+from aiframe.node.Nodes import BaseNode, HiddenLayerNode, ReluActivationNode, SoftmaxActivationNode, \
+    SigmoidActivationNode, TanHActivationNode
 from aiframe.Utils import get_class
 
 class NodeLoader():
@@ -8,6 +9,8 @@ class NodeLoader():
     def register_defualts(self):
         self.register(target=HiddenLayerNode, is_layer=True, author="builtin", path="HiddenLayerNode")
         self.register(target=ReluActivationNode, is_layer=False, author="builtin", path="ReluActivationNode")
+        self.register(target=SigmoidActivationNode, is_layer=False, author="builtin", path="SigmoidActivationNode")
+        self.register(target=TanHActivationNode, is_layer=False, author="builtin", path="TanHActivationNode")
         self.register(target=SoftmaxActivationNode, is_layer=False, author="builtin", path="SoftmaxActivationNode")
 
         return self

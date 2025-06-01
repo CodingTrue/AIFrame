@@ -35,6 +35,21 @@ class ReluActivationNode(BaseNode):
     def backward(self):
         return (self._output > 0).astype(float)
 
+class SigmoidActivationNode(BaseNode):
+    def evaluate(self):
+        self._output = 1 / (1 + np.exp(-self._input))
+
+    def backward(self):
+        sig = 1 / 1 + np.exp(-self._input)
+        return sig * (1 - sig)
+
+class TanHActivationNode(BaseNode):
+    def evaluate(self):
+        self._output = np.tanh(self._input)
+
+    def backward(self):
+        return 1 - (np.tanh(self._input) * np.tanh(self._input))
+
 class SoftmaxActivationNode(BaseNode):
     def evaluate(self):
         expos = np.exp(self._input - np.max(self._input, axis=-1, keepdims=True))

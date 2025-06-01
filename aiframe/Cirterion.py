@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from aiframe.Loss import BaseLoss, SquaredLoss, CrossEntropyLoss
-from aiframe.node.Nodes import BaseNode, SoftmaxActivationNode
+from aiframe.node.Nodes import BaseNode, SoftmaxActivationNode, SigmoidActivationNode
 
 
 class BaseCriterion(ABC):
@@ -35,4 +35,4 @@ class CrossEntropyCriterion(ABC):
         return CrossEntropyLoss()
 
     def add_node(self, index: int, node: BaseNode) -> bool:
-        return not (index == 0 and node.__class__ == SoftmaxActivationNode)
+        return not (index == 0 and node.__class__ in [SoftmaxActivationNode, SigmoidActivationNode])
