@@ -22,9 +22,6 @@ class TrainProgram(Program):
 
         lr = learn_rate
         for e in range(iterations):
-            losses.append(-np.log(nn.forward(input_data=inputs[0])[np.arange(batch_size), expected[0].argmax(axis=1)]).mean())
-
-
             for idx in np.random.permutation(batch_count):
                 train_function(inputs=inputs[idx], expected=expected[idx], gradientW=gradientW, gradientB=gradientB)
 
