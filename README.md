@@ -23,3 +23,16 @@ This repository is a clean and more well-written version than the actual prototy
 - 🔌 Low-level access for custom logic
 - 💾 Custom file format
 - 🗺️ Adaption for other file formats
+
+## 3. Demo Setup
+Current demo (`demo-01.06.2025.py`) needs following requirements:
+`gzip, requests, numpy`
+(no specific version, newest is enough).
+
+Run the demo.
+```shell
+python demo-01.06.2025.py
+```
+This demo downloads the MNIST-Dataset from `https://storage.googleapis.com/cvdf-datasets/mnist/`. After an example training of all 60k samples, it will evaluate the 10k test samples.
+Results may very in speed and result, but training accuracy should be around `94-98%`.
+Tested on a `AMD Ryzen 5 3600 (6 Cores)`; training took `12.5 seconds` to complete.
