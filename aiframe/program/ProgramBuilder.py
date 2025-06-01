@@ -1,5 +1,5 @@
 from aiframe import NeuralNetwork
-from aiframe.Cirterion import BaseCriterion
+from aiframe.Criterion import BaseCriterion
 from aiframe.Utils import mass_strip_list, mass_remove_list, mass_replace_list
 from aiframe.program import TrainProgram
 
