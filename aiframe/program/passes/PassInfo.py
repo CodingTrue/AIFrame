@@ -7,14 +7,14 @@ class PassInfoParameter():
         self._is_argument = is_argument
 
 class PassInfo():
-    def __init__(self):
-        self._parameters = {}
+    def __init__(self, for_key: str = ""):
+        self._parameters = []
         self._is_finalized = False
 
     def add(self, target: PassInfoParameter) -> Self:
         if self._is_finalized: raise Exception(f"PassInfo '{self}' is already finalized!")
 
-        self._parameters[target._name] = target
+        self._parameters.append(target)
 
         return self
 
