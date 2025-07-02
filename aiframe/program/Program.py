@@ -24,8 +24,10 @@ class Program():
     def add_line(self, line: str = "", descriptor: str = ""):
         if not descriptor: descriptor = str(uuid4())
         self._groups[self._active_group].update({descriptor: line})
-    def add_lines(self, lines: list = []):
-        for line in lines: self.add_line(line=line)
+
+    def add_lines(self, lines: list = [], descriptors: list|str = ""):
+        for i, line in enumerate(lines):
+            self.add_line(line=line, descriptor=descriptors[i] if isinstance(descriptors, list) else descriptors)
 
     def set_parameters(self, parameters: dict):
         self._program_parameters = parameters
