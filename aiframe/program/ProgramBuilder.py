@@ -10,11 +10,8 @@ from aiframe.program.passes import BasePass, PassInfo, PassInfoParameter
 import inspect
 
 class DefaultProgramBuilderPass(BasePass):
-    def run_pass(self):
-        return
-
     def get_pass_info(self, nn: NeuralNetwork) -> PassInfo:
-        return PassInfo().add(target=PassInfoParameter(name="backward_values", value=np.zeros(1))).finalize()
+        return PassInfo().add(target=PassInfoParameter(name="backward_values", value=np.zeros(np.max([neuron_count for neuron_count, _ in nn.get_network_structure()])))).finalize()
 
 def format_source(source: list = [], replace_info: list[dict]|dict = []) -> list:
     if type(replace_info) == dict: replace_info = [replace_info]
@@ -31,6 +28,7 @@ class ProgramBuilder():
     def create_train_program(nn: NeuralNetwork, criterion: BaseCriterion) -> TrainProgram:
         train_program = TrainProgram()
         train_program.add_pass(target=DefaultProgramBuilderPass())
+        train_program._nn = nn
 
         network_nodes = criterion.preparse_nodes(nodes=nn._network_nodes)
         layer_count = nn.get_layer_count()
@@ -59,5 +57,4 @@ class ProgramBuilder():
                 }
             ])
             train_program.add_lines(lines=source)
-
         return train_program

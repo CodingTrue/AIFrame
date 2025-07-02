@@ -1,5 +1,6 @@
 from aiframe import NeuralNetwork
 from aiframe.program.passes import BasePass, PassInfo, PassInfoParameter
+from uuid import uuid4
 
 class Program():
     def __init__(self, nn: NeuralNetwork = None):
@@ -18,24 +19,24 @@ class Program():
 
     def set_active_group(self, name: str):
         self._active_group = name
-        if not self._groups.get(self._active_group): self._groups[self._active_group] = []
+        if not self._groups.get(self._active_group): self._groups[self._active_group] = {}
 
-    def add_line(self, line: str = ""):
-        self._groups[self._active_group].append({'test_descriptor': line})
-
+    def add_line(self, line: str = "", descriptor: str = ""):
+        if not descriptor: descriptor = str(uuid4())
+        self._groups[self._active_group].update({descriptor: line})
     def add_lines(self, lines: list = []):
         for line in lines: self.add_line(line=line)
 
     def set_parameters(self, parameters: dict):
         self._program_parameters = parameters
 
-    def assamble(self, nn: NeuralNetwork = None):
+    def assamble(self, nn: NeuralNetwork = None, hard_passes: bool = False):
         #self._program = compile('\n'.join(self._program_lines), "<string>", "exec")
         self._debug_log_groups()
         if not self._nn and nn: self._nn = nn
 
         self.assemble_passes()
-        self.run_passes()
+        self.run_passes(hard_passes=hard_passes)
 
         exit(-44)
         return self
@@ -45,8 +46,7 @@ class Program():
             parameters = target.get_pass_info(nn=self._nn)._parameters
 
             for param in parameters:
-                if param._name in self._named_arguments: raise Exception(
-                    f"'{param._name}' was already regsitered by '{self._named_arguments[param._name]}'!")
+                if param._name in self._named_arguments: raise Exception(f"'{param._name}' was already regsitered by '{self._named_arguments[param._name]}'!")
 
                 if param._is_argument:
                     ...
@@ -61,9 +61,13 @@ class Program():
         exec(self._program, globals, locals)
         return locals.get(function_name)
 
-    def run_passes(self):
+    def run_passes(self, hard_passes: bool = False):
         for _pass in self._passes:
-            _pass.run_pass()
+            modifiers = _pass.run_pass()
+            modifiers = modifiers if modifiers else []
+
+            for modifier in modifiers:
+                modifier.modify(self._groups, hard_pass=hard_passes)
 
     def add_pass(self, target: BasePass):
         self._passes.append(target)
@@ -72,5 +76,5 @@ class Program():
     def _debug_log_groups(self):
         for group, lines in self._groups.items():
             print(f"{group}: " + '{\n\t' + '\n\t'.join(
-                ''.join(f"{v} | {k}" for k, v in d.items()) for d in lines
+                [f"{v} | {k}" for k, v in lines.items()]
             ) + '\n}')
