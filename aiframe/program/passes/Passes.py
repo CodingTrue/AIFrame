@@ -3,6 +3,14 @@ from abc import ABC, abstractmethod
 from aiframe import NeuralNetwork
 from aiframe.program.passes import PassInfo, PassInfoParameter
 
+def get_closest_keys(start: str, reference: dict) -> list[str]:
+    result = []
+    for key in reference.keys():
+        if not key.startswith(start): continue
+        result.append(key)
+
+    return result
+
 def select_by_group_path(path: str, groups: dict) -> any:
     keys = path.split("/")
     reference = groups
@@ -11,7 +19,7 @@ def select_by_group_path(path: str, groups: dict) -> any:
         reference = reference.get(keys[i])
 
     if isinstance(reference.get(keys[-1]), dict): raise Exception(f"Target reference '{path}' can't be group!")
-    return reference, keys[-1]
+    return reference, get_closest_keys(start=keys[-1], reference=reference)
 
 class PassInstruction(ABC):
     def __init__(self, target: str):
@@ -29,10 +37,11 @@ class ReplacePassInstruction(PassInstruction):
         self._replace_with = replace_with
 
     def modify(self, groups: dict = {}, hard_pass: bool = False):
-        ref, key = select_by_group_path(path=self._target, groups=groups)
+        ref, keys = select_by_group_path(path=self._target, groups=groups)
 
-        if not hard_pass and not ref.get(key): return
-        ref[key] = ref[key].replace(self._find, self._replace_with)
+        for key in keys:
+            if not hard_pass and not ref.get(key): return
+            ref[key] = ref[key].replace(self._find, self._replace_with)
 
 class AppendPassInstruction(PassInstruction):
     def __init__(self, target: str, append_str: str):
@@ -41,20 +50,22 @@ class AppendPassInstruction(PassInstruction):
         self._append_str = append_str
 
     def modify(self, groups: dict = {}, hard_pass: bool = False):
-        ref, key = select_by_group_path(path=self._target, groups=groups)
+        ref, keys = select_by_group_path(path=self._target, groups=groups)
 
-        if not hard_pass and not ref.get(key): return
-        ref[key] += self._append_str
+        for key in keys:
+            if not hard_pass and not ref.get(key): return
+            ref[key] += self._append_str
 
 class RemovePassInstruction(PassInstruction):
     def __init__(self, target: str):
         super().__init__(target=target)
 
     def modify(self, groups: dict = {}, hard_pass: bool = False):
-        ref, key = select_by_group_path(path=self._target, groups=groups)
+        ref, keys = select_by_group_path(path=self._target, groups=groups)
 
-        if not hard_pass and not ref.get(key): return
-        ref[key] = ""
+        for key in keys:
+            if not hard_pass and not ref.get(key): return
+            ref[key] = ""
 
 class BasePass(ABC):
     def run_pass(self) -> list:
