@@ -34,11 +34,12 @@ class Program():
 
     def assamble(self, nn: NeuralNetwork = None, hard_passes: bool = False):
         #self._program = compile('\n'.join(self._program_lines), "<string>", "exec")
-        self._debug_log_groups()
+        #self._debug_log_groups()
         if not self._nn and nn: self._nn = nn
 
         self.assemble_passes()
         self.run_passes(hard_passes=hard_passes)
+        self._debug_log_groups()
 
         exit(-44)
         return self
