@@ -11,6 +11,8 @@ from aiframe.program.passes import BasePass, PassInfo, PassInfoParameter
 from uuid import uuid4
 
 import inspect
+import textwrap
+import ast
 
 FORWARD_DESCRIPTOR_NAMES = {
     "HiddenLayerNode": {
@@ -58,7 +60,7 @@ def get_descriptors(source: list[str], descriptor_names: dict, set_locals: dict 
         definition = descriptor_names.get(node.__class__.__name__)
         if definition:
             for expression, value in definition.items():
-                descriptors.append(eval(value, {}, set_locals) if eval(expression, {}, set_locals) else NO_DEFINITION)
+                descriptors.append(eval(value, {}, set_locals) if eval(expression, {}, set_locals) else NO_DEFINITION + f"_{str(uuid4())}")
         else:
             descriptors.append(UNDEFINED_DESCRIPTOR + f"_{str(uuid4())}")
     return descriptors
@@ -67,15 +69,23 @@ class DefaultProgramBuilderPass(BasePass):
     def get_pass_info(self, nn: NeuralNetwork) -> PassInfo:
         return PassInfo().add(target=PassInfoParameter(name="backward_values", value=np.zeros(np.max([neuron_count for neuron_count, _ in nn.get_network_structure()])))).finalize()
 
-def format_source(source: list = [], replace_info: list[dict]|dict = []) -> list:
+def format_source(source, replace_info: list[dict]|dict = []) -> list:
+    source_string = textwrap.dedent(inspect.getsource(source))
+    source_lines = source_string.splitlines()
+
+    body_ast = ast.parse(source_string)
+    line_start, lined_end = body_ast.body[0].lineno, body_ast.body[0].end_lineno
+
+    body_lines = source_lines[line_start:lined_end]
+
     if type(replace_info) == dict: replace_info = [replace_info]
 
-    source = mass_strip_list(targets=source)
-    source = mass_remove_list(targets=source, remove_info=["self."])
+    body_lines = mass_strip_list(targets=body_lines)
+    body_lines = mass_remove_list(targets=body_lines, remove_info=["self."])
     for info in replace_info:
-        source = mass_replace_list(targets=source, replace_info=info)
+        body_lines = mass_replace_list(targets=body_lines, replace_info=info)
 
-    return source
+    return body_lines
 
 class ProgramBuilder():
     @staticmethod
@@ -90,7 +100,7 @@ class ProgramBuilder():
 
         train_program.set_active_group(name=FORWARD_PASS)
         for node_index, node in enumerate(network_nodes):
-            source = format_source(source=inspect.getsource(node.evaluate).split(':', 1)[1:], replace_info={
+            source = format_source(source=node.evaluate, replace_info={
                 "_output": CURRENT_LAYER_RESULT,
                 "_input": LAST_LAYER_RESULT,
                 "_weights": LAYER_WEIGHTS,
@@ -104,7 +114,7 @@ class ProgramBuilder():
 
         train_program.set_active_group(name=BACKWARD_PASS)
         for node_index, node in enumerate(network_nodes[::-1]):
-            source = format_source(source=inspect.getsource(node.backward).split(':', 1)[1:], replace_info=[
+            source = format_source(source=node.backward, replace_info=[
                 {
                     "return": "return =",
                 },
