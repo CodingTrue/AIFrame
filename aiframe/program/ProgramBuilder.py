@@ -126,6 +126,6 @@ class ProgramBuilder():
             ])
             source_len = len(source)
 
-            descriptors = get_descriptors(source=source, descriptor_names=FORWARD_DESCRIPTOR_NAMES, set_locals=locals())
+            descriptors = get_descriptors(source=source, descriptor_names=BACKWARD_DESCRIPTOR_NAMES, set_locals=locals())
             train_program.add_lines(lines=source, descriptors=descriptors)
         return train_program
