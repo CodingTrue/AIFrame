@@ -14,7 +14,7 @@ import inspect
 import textwrap
 import ast
 
-FORWARD_DESCRIPTOR_NAMES = {
+FORWARD_PASS_DESCRIPTORS = {
     "HiddenLayerNode": {
         "line_index + 1 == source_len": "f'layer_forward_{node_index}'"
     },
@@ -32,7 +32,7 @@ FORWARD_DESCRIPTOR_NAMES = {
     }
 }
 
-BACKWARD_DESCRIPTOR_NAMES = {
+BACKWARD_PASS_DESCRIPTORS = {
     "HiddenLayerNode": {
         "line_index + 1 == source_len": "f'layer_backward_{node_index}'"
     },
@@ -50,7 +50,10 @@ BACKWARD_DESCRIPTOR_NAMES = {
     }
 }
 
-def get_descriptors(source: list[str], descriptor_names: dict, set_locals: dict = {}) -> list[str]:
+def append_unique(target: str) -> str:
+    return f"{target}_{str(uuid4())}"
+
+def get_node_descriptors(source: list[str], descriptor_names: dict, set_locals: dict = {}) -> list[str]:
     descriptors = []
     node, node_index = set_locals.get("node"), set_locals.get("node_index")
 
@@ -60,14 +63,17 @@ def get_descriptors(source: list[str], descriptor_names: dict, set_locals: dict 
         definition = descriptor_names.get(node.__class__.__name__)
         if definition:
             for expression, value in definition.items():
-                descriptors.append(eval(value, {}, set_locals) if eval(expression, {}, set_locals) else NO_DEFINITION + f"_{str(uuid4())}")
+                descriptors.append(eval(value, {}, set_locals) if eval(expression, {}, set_locals) else append_unique(target=DEPENDENT_CODE_DESCRIPTOR))
         else:
-            descriptors.append(UNDEFINED_DESCRIPTOR + f"_{str(uuid4())}")
+            descriptors.append(append_unique(target=NO_DEFINITION))
     return descriptors
 
-class DefaultProgramBuilderPass(BasePass):
-    def get_pass_info(self, nn: NeuralNetwork) -> PassInfo:
-        return PassInfo().add(target=PassInfoParameter(name="backward_values", value=np.zeros(np.max([neuron_count for neuron_count, _ in nn.get_network_structure()])))).finalize()
+def get_iterable_descriptors(source: list[str], indexes: list[int], names: list[str]) -> list[str]:
+    descriptors = []
+    names = iter(names)
+    for line_index, _ in enumerate(source):
+        descriptors.append(next(names) if line_index in indexes else append_unique(target=NO_DEFINITION))
+    return descriptors
 
 def format_source(source, replace_info: list[dict]|dict = []) -> list:
     source_string = textwrap.dedent(inspect.getsource(source))
@@ -86,6 +92,20 @@ def format_source(source, replace_info: list[dict]|dict = []) -> list:
         body_lines = mass_replace_list(targets=body_lines, replace_info=info)
 
     return body_lines
+
+class DefaultProgramBuilderPass(BasePass):
+    def get_pass_info(self, nn: NeuralNetwork) -> PassInfo:
+        pass_info = PassInfo()
+        pass_info.add(target=PassInfoParameter(name="learn_rate", value=0.05, is_argument=True))
+        pass_info.add(target=PassInfoParameter(name="expected", value=np.ndarray, is_argument=True))
+
+        pass_info.add(target=PassInfoParameter(name="backward_values", value=np.zeros(np.max([neuron_count for neuron_count, _ in nn.get_network_structure()]))))
+        for i, layer in enumerate(nn.get_layers()):
+            pass_info.add(target=PassInfoParameter(name=f"{LAYER_WEIGHTS}_{i}", value=layer._weights))
+            pass_info.add(target=PassInfoParameter(name=f"{LAYER_BIASES}_{i}", value=layer._biases))
+
+        pass_info.finalize()
+        return pass_info
 
 class ProgramBuilder():
     @staticmethod
@@ -109,10 +129,21 @@ class ProgramBuilder():
             })
             source_len = len(source)
 
-            descriptors = get_descriptors(source=source, descriptor_names=FORWARD_DESCRIPTOR_NAMES, set_locals=locals())
+            descriptors = get_node_descriptors(source=source, descriptor_names=FORWARD_PASS_DESCRIPTORS, set_locals=locals())
             train_program.add_lines(lines=source, descriptors=descriptors)
 
         train_program.set_active_group(name=BACKWARD_PASS)
+        cost_source = format_source(source=criterion.get_loss().loss_derivative, replace_info=[
+            {
+                "return": "return =",
+            },
+            {
+                "return": COST_VALUES,
+                "predicted": "_x"
+            }
+        ])
+        train_program.add_lines(lines=cost_source, descriptors=get_iterable_descriptors(source=cost_source, indexes=[len(cost_source) - 1], names=[COST_VALUES]))
+
         for node_index, node in enumerate(network_nodes[::-1]):
             source = format_source(source=node.backward, replace_info=[
                 {
@@ -126,6 +157,6 @@ class ProgramBuilder():
             ])
             source_len = len(source)
 
-            descriptors = get_descriptors(source=source, descriptor_names=BACKWARD_DESCRIPTOR_NAMES, set_locals=locals())
+            descriptors = get_node_descriptors(source=source, descriptor_names=BACKWARD_PASS_DESCRIPTORS, set_locals=locals())
             train_program.add_lines(lines=source, descriptors=descriptors)
         return train_program
