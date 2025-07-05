@@ -93,10 +93,17 @@ def format_source(source, replace_info: list[dict]|dict = []) -> list:
 
     return body_lines
 
+def update_gradients(gradientW, gradientB, cached_layer, layer_index, backward_values, inputs):
+    gradientW[layer_index] = np.dot(cached_layer.T, backward_values)
+    gradientB[layer_index] = np.sum(backward_values, axis=0)
+
 class DefaultProgramBuilderPass(BasePass):
     def get_pass_info(self, nn: NeuralNetwork) -> PassInfo:
         pass_info = PassInfo()
+        pass_info.add(target=PassInfoParameter(name="gradientW", value=list[np.ndarray], is_argument=True))
+        pass_info.add(target=PassInfoParameter(name="gradientB", value=list[np.ndarray], is_argument=True))
         pass_info.add(target=PassInfoParameter(name="learn_rate", value=0.05, is_argument=True))
+        pass_info.add(target=PassInfoParameter(name="inputs", value=np.ndarray, is_argument=True))
         pass_info.add(target=PassInfoParameter(name="expected", value=np.ndarray, is_argument=True))
 
         pass_info.add(target=PassInfoParameter(name="backward_values", value=np.zeros(np.max([neuron_count for neuron_count, _ in nn.get_network_structure()]))))
@@ -138,20 +145,22 @@ class ProgramBuilder():
                 "return": "return =",
             },
             {
-                "return": COST_VALUES,
+                "return": BACKWARD_VALUES,
                 "predicted": "_x"
             }
         ])
         train_program.add_lines(lines=cost_source, descriptors=get_iterable_descriptors(source=cost_source, indexes=[len(cost_source) - 1], names=[COST_VALUES]))
-
+        layer_index = 0
         for node_index, node in enumerate(network_nodes[::-1]):
+            is_layer = nn._nodeloader.is_layer(target=node)
             source = format_source(source=node.backward, replace_info=[
                 {
                     "return": "return =",
                 },
                 {
-                    "return": CURRENT_LAYER_RESULT,
+                    "return": BACKWARD_VALUES if is_layer else LAYER_ACTIVATION_DERIVATIVE,
                     "_input": LAST_LAYER_RESULT,
+                    "activation": LAYER_ACTIVATION_DERIVATIVE,
                     "np": "numpy"
                 }
             ])
@@ -159,4 +168,17 @@ class ProgramBuilder():
 
             descriptors = get_node_descriptors(source=source, descriptor_names=BACKWARD_PASS_DESCRIPTORS, set_locals=locals())
             train_program.add_lines(lines=source, descriptors=descriptors)
+
+            if node_index == 0 and not is_layer:
+                train_program.add_line(line=f"{BACKWARD_VALUES} *= _x", descriptor=COST_BACKWARD_PARTIAL)
+
+            if is_layer:
+                layer_position = layer_count - layer_index - 1
+                source = format_source(source=update_gradients, replace_info={
+                    "layer_index": str(layer_position),
+                    "cached_layer": f"{LAST_LAYER_RESULT}_{layer_position - 1}" if layer_position > 0 else INPUTS
+                })
+                train_program.add_lines(lines=source, descriptors=[f"{UPDATE_WEIGHTS}_{layer_position}", f"{UPDATE_BIASES}_{layer_position}"])
+
+                layer_index += 1
         return train_program
