@@ -1,6 +1,34 @@
 from aiframe import NeuralNetwork
 from aiframe.program.passes import BasePass, PassInfo, PassInfoParameter
+from aiframe.program.ProgramConstants import *
+from aiframe.Utils import mass_replace
+
 from uuid import uuid4
+
+import ast
+import inspect
+import textwrap
+from types import GenericAlias
+
+def generate_function_source(name: str, body_lines: list, named_arguments: dict) -> str:
+    undefined_arguments = []
+    defined_arguments = []
+    for arg, info in named_arguments.items():
+        pass_info = info["pass_info"]
+        if not pass_info._is_argument: continue
+
+        value = pass_info._value
+        value_is_class = inspect.isclass(value) or value.__class__ == GenericAlias
+
+        value_type = (value if value.__module__ == "builtins" else f"{value.__module__}.{value.__name__}") if value_is_class else value.__class__.__name__
+
+        if value_is_class: undefined_arguments.append(f"{arg}: {value_type}")
+        else: defined_arguments.append(f"{arg}: {value_type} = {value}")
+    function_arguments = undefined_arguments + defined_arguments
+
+    function_header = f"def {name}({', '.join(function_arguments)}):\n"
+    function_body = textwrap.indent(text="\n".join(body_lines), prefix="\t")
+    return function_header + function_body
 
 class Program():
     def __init__(self, nn: NeuralNetwork = None):
@@ -9,12 +37,12 @@ class Program():
         self._program = None
 
         self._nn = nn
+        self._function_name = DEFAULT_FUNCTION_NAME
 
         self._groups = {}
         self._active_group = ""
 
         self._passes = []
-
         self._named_arguments = {}
 
     def set_active_group(self, name: str):
@@ -32,15 +60,46 @@ class Program():
     def set_parameters(self, parameters: dict):
         self._program_parameters = parameters
 
-    def assamble(self, nn: NeuralNetwork = None, hard_passes: bool = False):
+    def assamble(self, nn: NeuralNetwork = None, hard_passes: bool = False, function_name: str = DEFAULT_FUNCTION_NAME):
         #self._program = compile('\n'.join(self._program_lines), "<string>", "exec")
         #self._debug_log_groups()
         if not self._nn and nn: self._nn = nn
 
         self.assemble_passes()
         self.run_passes(hard_passes=hard_passes)
-        self._debug_log_groups()
+        #self._debug_log_groups()
 
+        layer_count = self._nn.get_layer_count()
+        body_lines = []
+        last_line = INPUTS
+        for group_name, group_body in self._groups.items():
+            line_index = 0
+            layer_index = layer_count - 1 if group_name == BACKWARD_PASS else 0
+
+            for descriptor, content in group_body.items():
+                projected_layer_index = layer_index if group_name == FORWARD_PASS else layer_count - layer_index - 1
+
+                if group_name == FORWARD_PASS:
+                    current_line = f"_{group_name}_" + str(line_index)
+                elif group_name == BACKWARD_PASS:
+                    current_line = BACKWARD_VALUES
+
+                body_lines.append(mass_replace(target=content, replace_info={
+                    LAYER_WEIGHTS: f"{LAYER_WEIGHTS}_{layer_index}",
+                    LAYER_BIASES: f"{LAYER_BIASES}_{layer_index}",
+                    CURRENT_LAYER_RESULT: current_line,
+                    LAST_LAYER_RESULT: last_line,
+                    CURRENT_LAYER_INDEX: f"{layer_index}",
+                    GROUP_NAME: group_name,
+                    LAYER_ACTIVATION_DERIVATIVE: f"{LAYER_ACTIVATION_DERIVATIVE}_{layer_index}"
+                }))
+                if not descriptor.startswith(DEPENDENT_CODE_DESCRIPTOR): line_index = line_index + 1
+                if descriptor.startswith("layer_"):
+                    layer_index = layer_count - layer_index - 1 if group_name == BACKWARD_PASS else layer_index + 1
+
+                last_line = current_line
+
+        source_string = generate_function_source(name=function_name if function_name else self._function_name, body_lines=body_lines, named_arguments=self._named_arguments)
         exit(-44)
         return self
 
@@ -49,13 +108,16 @@ class Program():
             parameters = target.get_pass_info(nn=self._nn)._parameters
 
             for param in parameters:
-                if param._name in self._named_arguments: raise Exception(f"'{param._name}' was already regsitered by '{self._named_arguments[param._name]}'!")
+                if param._name in self._named_arguments: raise Exception(f"'{param._name}' was already regsitered by '{self._named_arguments[param._name]['associated_class'].__name__}'!")
 
                 if param._is_argument:
                     ...
                 else:
                     ...
-                self._named_arguments[param._name] = target.__class__.__name__
+                self._named_arguments[param._name] = {
+                    "pass_info": param,
+                    "associated_class": target.__class__
+                }
 
     def get_function(self, function_name: str, globals: dict = {}):
         globals.update(self._program_parameters)

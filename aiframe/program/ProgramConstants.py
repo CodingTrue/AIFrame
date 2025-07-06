@@ -1,5 +1,6 @@
 # PROGRAM BUILDER AND PROGRAM
 CURRENT_LAYER_RESULT = "_y"
+CURRENT_LAYER_INDEX = "_i"
 LAST_LAYER_RESULT = "_x"
 LAYER_WEIGHTS = "_w"
 LAYER_BIASES = "_b"
@@ -15,6 +16,8 @@ DEFAULT_PASSES = [FORWARD_PASS, BACKWARD_PASS]
 INPUTS = "inputs"
 EXPECTED = "expected"
 
+GROUP_NAME = "_g"
+
 # PROGRAM BUILDER ONLY
 COST_VALUES = "cost_values"
 BACKWARD_VALUES = "backward_values"
@@ -22,3 +25,6 @@ COST_BACKWARD_PARTIAL = "cost_values_backward_values_partial"
 
 UPDATE_WEIGHTS = "update_weights"
 UPDATE_BIASES = "update_biases"
+
+# PROGRAM ONLY
+DEFAULT_FUNCTION_NAME = "main"

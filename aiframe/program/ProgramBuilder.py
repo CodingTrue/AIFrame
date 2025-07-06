@@ -160,6 +160,8 @@ class ProgramBuilder():
                 {
                     "return": BACKWARD_VALUES if is_layer else LAYER_ACTIVATION_DERIVATIVE,
                     "_input": LAST_LAYER_RESULT,
+                    "_weights": LAYER_WEIGHTS,
+                    "_biases": LAYER_BIASES,
                     "activation": LAYER_ACTIVATION_DERIVATIVE,
                     "np": "numpy"
                 }
@@ -176,7 +178,7 @@ class ProgramBuilder():
                 layer_position = layer_count - layer_index - 1
                 source = format_source(source=update_gradients, replace_info={
                     "layer_index": str(layer_position),
-                    "cached_layer": f"{LAST_LAYER_RESULT}_{layer_position - 1}" if layer_position > 0 else INPUTS
+                    "cached_layer": f"_{FORWARD_PASS}_{CURRENT_LAYER_INDEX}" if layer_position > 0 else INPUTS
                 })
                 train_program.add_lines(lines=source, descriptors=[f"{UPDATE_WEIGHTS}_{layer_position}", f"{UPDATE_BIASES}_{layer_position}"])
 
