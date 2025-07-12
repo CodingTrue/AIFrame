@@ -33,7 +33,7 @@ class ReluActivationNode(BaseNode):
         self._output = np.maximum(self._input, 0)
 
     def backward(self):
-        return (self._output > 0).astype(float)
+        return (self._input > 0).astype(float)
 
 class SigmoidActivationNode(BaseNode):
     def evaluate(self):
