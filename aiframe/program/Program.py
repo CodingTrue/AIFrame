@@ -10,6 +10,19 @@ import inspect
 import textwrap
 from types import GenericAlias
 
+DEFAULT_PASS_LINE_INDEX_GENERATOR = "default"
+DEFAULT_PASS_LAYER_INDEX_GENERATOR = "default"
+
+PASS_LINE_INDEX_GENERATORS = {
+    DEFAULT_PASS_LINE_INDEX_GENERATOR: lambda x, local_vars: x,
+}
+PASS_LAYER_INDEX_GENERATORS = {
+    DEFAULT_PASS_LAYER_INDEX_GENERATOR: lambda x, local_vars: x,
+    BACKWARD_PASS: lambda x, local_vars: local_vars["layer_count"] - x
+}
+PASS_NAME_PREFIX_OVERRIDES = {}
+DEFAULT_PASS_LINE_PREFIX = "v_group_name_"
+
 def generate_function_source(name: str, body_content: list, named_arguments: dict) -> str:
     undefined_arguments = []
     defined_arguments = []
@@ -32,32 +45,44 @@ def generate_function_source(name: str, body_content: list, named_arguments: dic
 
 def parse_function_body(groups: dict, layer_count: int) -> list[str]:
     body_content = []
-    last_line = INPUTS
+
+    last_layer_name = INPUTS
+    last_group_prefix = ""
     for group_name, group_body in groups.items():
+        group_prefix = PASS_NAME_PREFIX_OVERRIDES[group_name] if group_name in PASS_NAME_PREFIX_OVERRIDES else DEFAULT_PASS_LINE_PREFIX.replace("group_name", group_name)
+        line_generator = group_name if group_name in PASS_LINE_INDEX_GENERATORS else DEFAULT_PASS_LINE_INDEX_GENERATOR
+        layer_generator = group_name if group_name in PASS_LAYER_INDEX_GENERATORS else DEFAULT_PASS_LAYER_INDEX_GENERATOR
+
         line_index = 0
-        layer_index = layer_count - 1 if group_name == BACKWARD_PASS else 0
+        layer_index = 0
+        last_activation_name = ""
 
         for descriptor, content in group_body.items():
-            projected_layer_index = layer_index if group_name == FORWARD_PASS else layer_count - layer_index - 1
+            current_line_index = PASS_LINE_INDEX_GENERATORS[line_generator](line_index, locals())
+            current_layer_index = PASS_LAYER_INDEX_GENERATORS[layer_generator](layer_index, locals())
+            current_name = group_prefix + str(current_line_index)
 
-            if group_name == FORWARD_PASS:
-                current_line = f"_{group_name}_" + str(line_index)
-            elif group_name == BACKWARD_PASS:
-                current_line = BACKWARD_VALUES
+            if content.startswith(LAYER_ACTIVATION_DERIVATIVE):
+                last_activation_name = descriptor
 
             body_content.append(mass_replace(target=content, replace_info={
-                LAYER_WEIGHTS: f"{LAYER_WEIGHTS}_{layer_index}",
-                LAYER_BIASES: f"{LAYER_BIASES}_{layer_index}",
-                CURRENT_LAYER_RESULT: current_line,
-                LAST_LAYER_RESULT: last_line,
-                CURRENT_LAYER_INDEX: f"{layer_index}",
-                GROUP_NAME: group_name,
-                LAYER_ACTIVATION_DERIVATIVE: f"{LAYER_ACTIVATION_DERIVATIVE}_{layer_index}"
+                f"{LAST_GROUP_NAME}{LAYER_INDEX}": INPUTS if current_layer_index <= 0 else f"{LAST_GROUP_NAME}{LAYER_INDEX}",
+                CURRENT_LAYER_RESULT: current_name,
+                LAST_LAYER_RESULT: last_layer_name,
+                LAYER_INDEX: str(current_layer_index),
+                LAYER_WEIGHTS: f"_w_{current_layer_index}",
+                LAYER_BIASES: f"_b_{current_layer_index}",
+                GROUP_NAME: group_prefix,
+                LAST_GROUP_NAME: last_group_prefix,
+                LAYER_ACTIVATION_DERIVATIVE: last_activation_name
             }))
-            if not descriptor.startswith(DEPENDENT_CODE_DESCRIPTOR): line_index = line_index + 1
-            if descriptor.startswith("layer_"):
-                layer_index = layer_count - layer_index - 1 if group_name == BACKWARD_PASS else layer_index + 1
-            last_line = current_line
+
+            if content.startswith(CURRENT_LAYER_RESULT):
+                last_layer_name = current_name
+                line_index += 1
+            if descriptor.startswith("layer_"): layer_index += 1
+
+        last_group_prefix = group_prefix
     return body_content
 
 class Program():
