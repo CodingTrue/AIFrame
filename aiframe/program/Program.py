@@ -48,6 +48,7 @@ def parse_function_body(groups: dict, layer_count: int) -> list[str]:
 
     last_layer_name = INPUTS
     last_group_prefix = ""
+    forward_pass_layers = {}
     for group_name, group_body in groups.items():
         group_prefix = PASS_NAME_PREFIX_OVERRIDES[group_name] if group_name in PASS_NAME_PREFIX_OVERRIDES else DEFAULT_PASS_LINE_PREFIX.replace("group_name", group_name)
         line_generator = group_name if group_name in PASS_LINE_INDEX_GENERATORS else DEFAULT_PASS_LINE_INDEX_GENERATOR
@@ -74,13 +75,17 @@ def parse_function_body(groups: dict, layer_count: int) -> list[str]:
                 LAYER_BIASES: f"_b_{current_layer_index}",
                 GROUP_NAME: group_prefix,
                 LAST_GROUP_NAME: last_group_prefix,
-                LAYER_ACTIVATION_DERIVATIVE: last_activation_name
+                LAYER_ACTIVATION_DERIVATIVE: last_activation_name,
+                LAST_LAYER_NAME: str(forward_pass_layers.get(current_layer_index - 1))
             }))
 
             if content.startswith(CURRENT_LAYER_RESULT):
                 last_layer_name = current_name
                 line_index += 1
-            if descriptor.startswith("layer_"): layer_index += 1
+            if descriptor.startswith("layer_"):
+                if group_name == FORWARD_PASS:
+                    forward_pass_layers.update({layer_index: current_name})
+                layer_index += 1
 
         last_group_prefix = group_prefix
     return body_content

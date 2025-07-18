@@ -159,7 +159,7 @@ class ProgramBuilder():
             source = format_source(source=node.backward, replace_info={
                 "return": f"{CURRENT_LAYER_RESULT if is_layer else LAYER_ACTIVATION_DERIVATIVE} =",
                 "activation": LAYER_ACTIVATION_DERIVATIVE,
-                "_input": f"{LAST_GROUP_NAME}{LAYER_INDEX}",
+                "_input": LAST_LAYER_NAME,
                 "_output": CURRENT_LAYER_RESULT,
                 "_weights": LAYER_WEIGHTS,
                 "_biases": LAYER_BIASES,
