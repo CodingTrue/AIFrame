@@ -154,7 +154,11 @@ class ProgramBuilder():
 
         train_program.set_active_group(name=BACKWARD_PASS)
         layer_index = 0
+        skipped_last = False
         for node_index, node in enumerate(network_nodes[::-1]):
+            if not criterion.add_node(index=node_index, node=node):
+                skipped_last = True
+
             is_layer = nn._nodeloader.is_layer(target=node)
             source = format_source(source=node.backward, replace_info={
                 "return": f"{CURRENT_LAYER_RESULT if is_layer else LAYER_ACTIVATION_DERIVATIVE} =",
@@ -169,11 +173,12 @@ class ProgramBuilder():
                 "activation": LAYER_ACTIVATION_DERIVATIVE,
                 "cost_values": f"{GROUP_NAME}{layer_index}",
                 "backward_values": CURRENT_LAYER_RESULT
-            })
+            }) if skipped_last else [EMPTY_ALIGNMENT_LINE]
             source_len = len(source)
 
             descriptors = get_node_descriptors(source=source, descriptor_names=BACKWARD_PASS_DESCRIPTORS, set_locals=locals())
-            train_program.add_lines(lines=source, descriptors=descriptors)
+            if not skipped_last: train_program.add_lines(lines=source, descriptors=descriptors)
+            skipped_last = False
 
             if is_layer:
                 source = format_source(source=update_gradients, replace_info={
