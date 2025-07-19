@@ -26,8 +26,6 @@ EMPTY_ALIGNMENT_LINE = "#EMPTY_ALIGNMENT_LINE"
 
 # PROGRAM BUILDER ONLY
 COST_VALUES = "cost_values"
-BACKWARD_VALUES = "backward_values"
-COST_BACKWARD_PARTIAL = "cost_values_backward_values_partial"
 
 UPDATE_WEIGHTS = "update_weights"
 UPDATE_BIASES = "update_biases"

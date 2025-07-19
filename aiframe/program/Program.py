@@ -155,7 +155,7 @@ class Program():
 
     def run_passes(self, hard_passes: bool = False):
         for _pass in self._passes:
-            modifiers = _pass.run_pass()
+            modifiers = _pass.get_pass_instructions()
             modifiers = modifiers if modifiers else []
 
             for modifier in modifiers:

@@ -68,7 +68,7 @@ class RemovePassInstruction(PassInstruction):
             ref[key] = ""
 
 class BasePass(ABC):
-    def run_pass(self) -> list:
+    def get_pass_instructions(self) -> list:
         return []
 
     @abstractmethod

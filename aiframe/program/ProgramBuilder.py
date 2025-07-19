@@ -114,7 +114,6 @@ class DefaultProgramBuilderPass(BasePass):
             pass_info.add(target=PassInfoParameter(name=f"{LAYER_WEIGHTS.replace(SPECIAL_ESCAPE, '')}_{i}", value=layer._weights))
             pass_info.add(target=PassInfoParameter(name=f"{LAYER_BIASES.replace(SPECIAL_ESCAPE, '')}_{i}", value=layer._biases))
 
-        pass_info.finalize()
         return pass_info
 
 class ProgramBuilder():
