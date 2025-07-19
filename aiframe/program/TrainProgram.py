@@ -4,8 +4,12 @@ from aiframe import NeuralNetwork
 from aiframe.program import Program
 
 class TrainProgram(Program):
+    def __init__(self):
+        super().__init__(nn=None)
+        self._function_name = "train_function"
+
     def train(self, nn: NeuralNetwork, training_data: list, learn_rate: float = 0.05, iterations: int = 1, learn_rate_decay: float = 1):
-        train_function = self.get_function(function_name="train_function", globals={"np": np})
+        train_function = self.get_function(function_name="train_function", program_globals={"numpy": np})
 
         weights = nn.get_weights()
         biases = nn.get_biases()
