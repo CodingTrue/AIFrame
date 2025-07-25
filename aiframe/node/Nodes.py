@@ -48,7 +48,7 @@ class TanHActivationNode(BaseNode):
         self._output = np.tanh(self._input)
 
     def backward(self):
-        return 1 - (np.tanh(self._input) * np.tanh(self._input))
+        return 1 - (np.tanh(self._input)**2)
 
 class SoftmaxActivationNode(BaseNode):
     def evaluate(self):
